@@ -75,7 +75,6 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
 
   const handleStopSession = useCallback(() => {
     if (sessionRef.current) {
-      // In Gemini Live API, usually there's no check, just close if exists
       try { sessionRef.current.close(); } catch(e) {}
       sessionRef.current = null;
     }
@@ -110,21 +109,32 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
 
       const systemInstruction = `
         You are a friendly and encouraging English conversation partner for kids aged 7-14.
-        Scenario: ${scenario.scenario_title}
-        Your Role: ${scenario.role}
-        Setting: ${scenario.setting}
-        Student Goal: ${scenario.student_goal}
-        Target Vocabulary: ${scenario.key_vocabulary.join(', ')}
+        
+        IMPORTANT OPENING:
+        At the very beginning of the practice, you MUST greet the following three girls in both CHINESE and ENGLISH:
+        - 七七 (Qiqi)
+        - 小雨滴 (Xiao Yudi / Little Raindrop)
+        - 豆豆 (Doudou)
+        
+        Example greeting: "Hello Qiqi, Xiao Yudi, and Doudou! 你好七七，小雨滴和豆豆！I'm so happy to practice English with you today."
+        
+        After the bilingual greeting, ask them a warm-up question in both languages to get them started, then transition into your role for the scenario.
+        
+        Scenario Details:
+        - Scenario: ${scenario.scenario_title}
+        - Your Role: ${scenario.role}
+        - Setting: ${scenario.setting}
+        - Student Goal: ${scenario.student_goal}
+        - Target Vocabulary: ${scenario.key_vocabulary.join(', ')}
         
         STRICT RULES:
         1. Keep responses short (1-3 sentences).
         2. Use simple, age-appropriate English.
         3. MODE A (Roleplay): Stay in character. Ask open-ended questions.
-        4. MODE B (Feedback): If the student speaks, briefly praise them (1 sentence), 
+        4. MODE B (Feedback): If the students speak, briefly praise them (1 sentence), 
            then gently correct 1 grammar/pronunciation issue if needed, 
            suggest an improved version, and return to roleplay by asking the next question.
         5. Tone: Positive, patient, and safe.
-        6. Start by briefly introducing the setting and your character, then ask the first question.
       `;
 
       const sessionPromise = ai.live.connect({
@@ -144,7 +154,6 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
             setIsActive(true);
             setIsConnecting(false);
 
-            // Audio Input streaming
             if (audioContextInputRef.current) {
               const source = audioContextInputRef.current.createMediaStreamSource(stream);
               const scriptProcessor = audioContextInputRef.current.createScriptProcessor(4096, 1, 1);
@@ -160,7 +169,6 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
             }
           },
           onmessage: async (message: LiveServerMessage) => {
-            // Handle Audio Output
             const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
             if (base64Audio && audioContextOutputRef.current) {
               setIsAiSpeaking(true);
@@ -179,7 +187,6 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
               sourcesRef.current.add(source);
             }
 
-            // Handle Interruptions
             if (message.serverContent?.interrupted) {
               sourcesRef.current.forEach(s => s.stop());
               sourcesRef.current.clear();
@@ -187,7 +194,6 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
               setIsAiSpeaking(false);
             }
 
-            // Handle Transcriptions
             if (message.serverContent?.inputTranscription) {
               currentInputTranscription.current += message.serverContent.inputTranscription.text;
             }
@@ -246,7 +252,6 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
 
   return (
     <div className="bg-white rounded-[2rem] shadow-2xl p-6 md:p-8 flex flex-col h-[70vh] border-4 border-sky-100 relative overflow-hidden">
-      {/* Background Glow */}
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 blur-3xl rounded-full opacity-20 pointer-events-none transition-colors duration-500 ${isAiSpeaking ? 'bg-yellow-400' : 'bg-sky-400'}`}></div>
 
       <div className="flex items-center justify-between mb-6 z-10">
@@ -265,13 +270,11 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
         </div>
       </div>
 
-      {/* Goal Banner */}
       <div className="bg-sky-50 rounded-2xl p-4 mb-6 border border-sky-100 z-10">
         <div className="text-xs font-bold text-sky-400 uppercase mb-1">Your Mission:</div>
         <p className="text-sky-800 text-sm italic">"{scenario.student_goal}"</p>
       </div>
 
-      {/* Transcriptions */}
       <div 
         ref={transcriptionContainerRef}
         className="flex-grow overflow-y-auto mb-6 space-y-4 pr-2 scroll-smooth"
@@ -279,7 +282,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
         {transcriptions.length === 0 && !isActive && !isConnecting && (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
             <div className="text-4xl mb-4">👋</div>
-            <p className="text-sky-400 font-medium">Click "Start Session" to begin your English practice!</p>
+            <p className="text-sky-400 font-medium">Hi Qiqi, Xiao Yudi, and Doudou! Click "Start Session" to begin!</p>
           </div>
         )}
         
@@ -318,14 +321,12 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
         )}
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="mb-4 p-3 bg-red-50 text-red-500 rounded-xl text-xs border border-red-100 text-center">
           {error}
         </div>
       )}
 
-      {/* Controls */}
       <div className="flex flex-col gap-4 z-10">
         {!isActive && !isConnecting ? (
           <button
@@ -358,7 +359,6 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ scenario, onEnd }) => {
         )}
       </div>
 
-      {/* Decorative dots */}
       <div className="absolute bottom-4 left-4 flex gap-1">
         <div className="w-2 h-2 bg-sky-200 rounded-full"></div>
         <div className="w-2 h-2 bg-sky-100 rounded-full"></div>
