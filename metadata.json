@@ -1,0 +1,7 @@
+{
+  "name": "KidSpeak AI - English Practice",
+  "description": "A real-time, voice-based conversational English practice app for children aged 7-14 with scenario-based roleplay and gentle feedback.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
